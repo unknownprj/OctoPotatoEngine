@@ -9,6 +9,8 @@
 
 using namespace OctoPotato;
 
+Allocator::Allocator() : m_pageList(nullptr), m_freeList(nullptr), m_dataSize(0), m_pageSize(0), m_alignmentSize(0), m_blockSize(0), m_blocksPerPage(0) {}
+
 Allocator::Allocator(size_t dataSize, size_t pageSize, size_t alignment) : m_pageList(nullptr), m_freeList(nullptr) {
     reset(dataSize, pageSize, alignment);
 }
