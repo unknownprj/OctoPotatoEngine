@@ -1,8 +1,10 @@
 #include "BaseApplication.hpp"
 
-int OctoPotato::BaseApplication::initialize() {
-    m_bQuit = false;
+bool OctoPotato::BaseApplication::m_bQuit = false;
 
+OctoPotato::BaseApplication::BaseApplication(const Configuration& cfg) : m_config(cfg) {}
+
+int OctoPotato::BaseApplication::initialize() {
     return 0;
 }
 

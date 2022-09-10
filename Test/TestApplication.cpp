@@ -1,6 +1,6 @@
-#include "BaseApplication.hpp"
+#include "GLFWApplication.hpp"
 
 namespace OctoPotato {
-    BaseApplication g_App;
+    GLFWApplication g_App(Configuration(800U, 600U));
     IApplication* g_pApp = &g_App;
 }
