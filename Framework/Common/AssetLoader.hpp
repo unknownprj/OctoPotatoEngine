@@ -6,10 +6,12 @@
 #include <vector>
 #include "IRuntimeModule.hpp"
 #include "Buffer.hpp"
+#include <iostream>
 
 namespace OctoPotato {
     class AssetLoader : implements IRuntimeModule {
     public:
+        AssetLoader() { std::clog << "AssetLoaderCons" << std::endl; }
         virtual ~AssetLoader() {};
         virtual int initialize();
         virtual void finalize();
@@ -33,6 +35,8 @@ namespace OctoPotato {
         bool removeSearchPath(const char *path);
 
         bool fileExists(const char *filePath);
+
+        const std::string searchFile(const char* name);
 
         AssetFilePtr openFile(const char *name, AssetOpenMode mode);
 

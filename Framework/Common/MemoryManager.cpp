@@ -25,18 +25,21 @@ namespace OctoPotato {
     static const uint32_t kMaxBlockSize = kBlockSizes[kNumBlockSizes - 1];
 }
 
+size_t*     MemoryManager::m_pBlockSizeLookup;
+Allocator*  MemoryManager::m_pAllocators;
+
 int MemoryManager::initialize() {
     static bool s_bInitialized = false;
-    if(!s_bInitialized) {
+    if (!s_bInitialized) {
         m_pBlockSizeLookup = new size_t[kMaxBlockSize + 1];
         size_t j = 0;
-        for(size_t i = 0; i <= kMaxBlockSize; ++i) {
-            if(i > kBlockSizes[j]) ++j;
+        for (size_t i = 0; i <= kMaxBlockSize; ++i) {
+            if (i > kBlockSizes[j]) ++j;
             m_pBlockSizeLookup[i] = j;
         }
 
         m_pAllocators = new Allocator[kNumBlockSizes];
-        for(size_t i = 0; i < kNumBlockSizes; ++i) {
+        for (size_t i = 0; i < kNumBlockSizes; ++i) {
             m_pAllocators[i].reset(kBlockSizes[i], kPageSize, kAlignment);
         }
 
@@ -53,26 +56,28 @@ void MemoryManager::finalize() {
 
 void MemoryManager::tick() {}
 
-Allocator * MemoryManager::lookUpAllocator(size_t size) {
-    if(size <= kMaxBlockSize) {
+Allocator* MemoryManager::lookUpAllocator(size_t size) {
+    if (size <= kMaxBlockSize) {
         return m_pAllocators + m_pBlockSizeLookup[size];
-    } else {
+    }
+    else {
         return nullptr;
     }
 }
 
-void * MemoryManager::allocate(size_t size) {
-    Allocator *pAlloc = lookUpAllocator(size);
-    if(pAlloc) {
+void* MemoryManager::allocate(size_t size) {
+    Allocator* pAlloc = lookUpAllocator(size);
+    if (pAlloc) {
         return pAlloc->allocate();
-    } else {
+    }
+    else {
         return std::malloc(size);
     }
 }
 
-void MemoryManager::free(void *p, size_t size) {
-    Allocator *pAlloc = lookUpAllocator(size);
-    if(pAlloc)
+void MemoryManager::free(void* p, size_t size) {
+    Allocator* pAlloc = lookUpAllocator(size);
+    if (pAlloc)
         pAlloc->free(p);
     else
         std::free(p);

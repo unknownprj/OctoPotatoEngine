@@ -5,4 +5,5 @@ BaseApplication.cpp
 GraphicsManager.cpp
 main.cpp
 MemoryManager.cpp
+SceneManager.cpp
 )

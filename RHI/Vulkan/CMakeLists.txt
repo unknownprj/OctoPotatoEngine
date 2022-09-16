@@ -1,0 +1,2 @@
+add_library(VkManager
+VulkanGraphicsManager.cpp)

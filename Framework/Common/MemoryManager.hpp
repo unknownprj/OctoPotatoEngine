@@ -2,6 +2,7 @@
 #include "IRuntimeModule.hpp"
 #include "Allocator.hpp"
 #include <new>
+#include <iostream>
 
 namespace OctoPotato {
     class MemoryManager : implements IRuntimeModule {
@@ -16,7 +17,7 @@ namespace OctoPotato {
             reinterpret_cast<T*>(p)->~T();
             free(p, sizeof(T));
         }
-
+        MemoryManager() { std::clog << "MemManCons" << std::endl; }
         virtual ~MemoryManager() {}
 
         virtual int initialize();

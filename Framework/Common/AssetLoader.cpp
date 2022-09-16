@@ -8,11 +8,11 @@ void AssetLoader::finalize() { m_searchPaths.clear(); }
 
 void AssetLoader::tick() {}
 
-bool AssetLoader::addSearchPath(const char *path) {
+bool AssetLoader::addSearchPath(const char* path) {
     std::vector<std::string>::iterator src = m_searchPaths.begin();
 
-    while(src != m_searchPaths.end()) {
-        if(!(*src).compare(path))
+    while (src != m_searchPaths.end()) {
+        if (!(*src).compare(path))
             return true;
         ++src;
     }
@@ -21,11 +21,11 @@ bool AssetLoader::addSearchPath(const char *path) {
     return true;
 }
 
-bool AssetLoader::removeSearchPath(const char *path) {
+bool AssetLoader::removeSearchPath(const char* path) {
     auto src = m_searchPaths.begin();
 
-    while(src != m_searchPaths.end()) {
-        if(!(*src).compare(path)) {
+    while (src != m_searchPaths.end()) {
+        if (!(*src).compare(path)) {
             m_searchPaths.erase(src);
             return true;
         }
@@ -35,30 +35,31 @@ bool AssetLoader::removeSearchPath(const char *path) {
     return true;
 }
 
-bool AssetLoader::fileExists(const char *filePath) {
+bool AssetLoader::fileExists(const char* filePath) {
     AssetFilePtr fp = openFile(filePath, ASSET_OPEN_BINARY);
-    if(fp != nullptr) {
+    if (fp != nullptr) {
         closeFile(fp);
         return true;
     }
     return false;
 }
 
-AssetLoader::AssetFilePtr AssetLoader::openFile(const char *name, AssetOpenMode mode) {
-    FILE *fp = nullptr;
+AssetLoader::AssetFilePtr AssetLoader::openFile(const char* name, AssetOpenMode mode) {
+    FILE* fp = nullptr;
 
     std::string upPath;
     std::string fullPath;
-    for(int32_t i = 0; i < 10; i++) {
+    for (int32_t i = 0; i < 5; i++) {
         std::vector<std::string>::iterator src = m_searchPaths.begin();
         bool looping = true;
-        while(looping) {
+        while (looping) {
             fullPath.assign(upPath);
-            if(src != m_searchPaths.end()) {
+            if (src != m_searchPaths.end()) {
                 fullPath.append(*src);
                 fullPath.append("/Assets/");
                 ++src;
-            } else {
+            }
+            else {
                 fullPath.append("Assets/");
                 looping = false;
             }
@@ -66,7 +67,7 @@ AssetLoader::AssetFilePtr AssetLoader::openFile(const char *name, AssetOpenMode 
 #ifdef DEBUG
             fprintf(stderr, "Trying to open file: %s\n", fullPath.c_str());
 #endif
-            switch(mode) {
+            switch (mode) {
             case ASSET_OPEN_TEXT:
                 fp = fopen(fullPath.c_str(), "r");
                 break;
@@ -75,7 +76,7 @@ AssetLoader::AssetFilePtr AssetLoader::openFile(const char *name, AssetOpenMode 
                 break;
             }
 
-            if(fp)
+            if (fp)
                 return static_cast<AssetFilePtr>(fp);
         }
 
@@ -85,11 +86,50 @@ AssetLoader::AssetFilePtr AssetLoader::openFile(const char *name, AssetOpenMode 
     return nullptr;
 }
 
-Buffer &AssetLoader::syncOpenAndReadText(const char *filePath) {
-    AssetFilePtr fp = openFile(filePath, ASSET_OPEN_TEXT);
-    Buffer *pBuff = nullptr;
+const std::string AssetLoader::searchFile(const char* name) {
+    FILE* fp = nullptr;
 
-    if(fp) {
+    std::string upPath;
+    std::string fullPath;
+    for (int32_t i = 0; i < 5; i++) {
+        std::vector<std::string>::iterator src = m_searchPaths.begin();
+        bool looping = true;
+        while (looping) {
+            fullPath.assign(upPath);
+            if (src != m_searchPaths.end()) {
+                fullPath.append(*src);
+                fullPath.append("/Assets/");
+                ++src;
+            }
+            else {
+                fullPath.append("Assets/");
+                looping = false;
+            }
+            fullPath.append(name);
+#ifdef DEBUG
+            fprintf(stderr, "Trying to open file: %s\n", fullPath.c_str());
+#endif
+
+            fp = fopen(fullPath.c_str(), "r");
+
+            if (fp) {
+                std::clog << "file found at: " << fullPath << std::endl;
+                return fullPath;
+            }
+        }
+
+        upPath.append("../");
+    }
+    std::clog << "file" << name << "not found" << std::endl;
+
+    return "";
+}
+
+Buffer& AssetLoader::syncOpenAndReadText(const char* filePath) {
+    AssetFilePtr fp = openFile(filePath, ASSET_OPEN_TEXT);
+    Buffer* pBuff = nullptr;
+
+    if (fp) {
         size_t length = getSize(fp);
 
         pBuff = new Buffer(length + 1);
@@ -97,7 +137,8 @@ Buffer &AssetLoader::syncOpenAndReadText(const char *filePath) {
         (pBuff->data())[length] = '\0';
 
         closeFile(fp);
-    } else {
+    }
+    else {
         fprintf(stderr, "Failed to opening file: %s\n", filePath);
         pBuff = new Buffer();
     }
@@ -109,13 +150,13 @@ Buffer &AssetLoader::syncOpenAndReadText(const char *filePath) {
     return *pBuff;
 }
 
-void AssetLoader::closeFile(AssetFilePtr &fp) {
+void AssetLoader::closeFile(AssetFilePtr& fp) {
     fclose((FILE*)fp);
     fp = nullptr;
 }
 
-size_t AssetLoader::getSize(const AssetFilePtr &fp) {
-    FILE *_fp = static_cast<FILE*>(fp);
+size_t AssetLoader::getSize(const AssetFilePtr& fp) {
+    FILE* _fp = static_cast<FILE*>(fp);
 
     long pos = ftell(_fp);
     fseek(_fp, 0, SEEK_END);
@@ -125,10 +166,10 @@ size_t AssetLoader::getSize(const AssetFilePtr &fp) {
     return length;
 }
 
-size_t AssetLoader::syncRead(const AssetFilePtr &fp, Buffer &buf) {
+size_t AssetLoader::syncRead(const AssetFilePtr& fp, Buffer& buf) {
     size_t sz;
 
-    if(!fp) {
+    if (!fp) {
         fprintf(stderr, "[AssetLoader::syncRead] Null file discriptor\n");
         return 0;
     }

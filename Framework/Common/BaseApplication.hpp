@@ -1,6 +1,7 @@
 #pragma once
 #include "IApplication.hpp"
 #include "Configuration.hpp"
+#include <iostream>
 
 namespace OctoPotato {
     class BaseApplication : implements IApplication {
@@ -10,7 +11,6 @@ namespace OctoPotato {
         virtual void finalize();
         virtual void tick();
         virtual bool isQuit();
-    protected:
         static bool m_bQuit;
         Configuration m_config;
     private:

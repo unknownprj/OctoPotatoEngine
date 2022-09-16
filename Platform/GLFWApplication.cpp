@@ -1,6 +1,8 @@
 #include "GLFWApplication.hpp"
 #include <stdexcept>
 #include <iostream>
+#include "global.hpp"
+#include "VulkanGraphicsManager.hpp"
 
 using namespace OctoPotato;
 
@@ -15,7 +17,8 @@ int GLFWApplication::initialize() {
         glfwTerminate();
         throw std::runtime_error("creating window failed");
     }
-    glfwSetWindowUserPointer(window, this);
+    glfwSetWindowUserPointer(window, g_pGraphicsManager);
+    glfwSetFramebufferSizeCallback(window, VulkanGraphicsManager::framebufferResizeCallback);
 
     return 0;
 }
