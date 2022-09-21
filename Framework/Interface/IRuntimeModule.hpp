@@ -3,7 +3,7 @@
 #include "Interface.hpp"
 
 namespace OctoPotato {
-    Interface IRuntimeModule {
+    class IRuntimeModule {
     public:
         virtual ~IRuntimeModule() {};
 

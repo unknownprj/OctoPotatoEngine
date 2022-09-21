@@ -19,6 +19,10 @@ int GLFWApplication::initialize() {
     }
     glfwSetWindowUserPointer(window, g_pGraphicsManager);
     glfwSetFramebufferSizeCallback(window, VulkanGraphicsManager::framebufferResizeCallback);
+    glfwSetCursorPosCallback(window, VulkanGraphicsManager::cursorPositionCallback);
+    glfwSetMouseButtonCallback(window, VulkanGraphicsManager::mouseButtonCallback);
+    glfwSetKeyCallback(window, VulkanGraphicsManager::keyCallback);
+    glfwSetScrollCallback(window, VulkanGraphicsManager::scrollCallback);
 
     return 0;
 }

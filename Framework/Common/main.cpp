@@ -28,24 +28,30 @@ int main(int argc, char** argv) {
         return ret;
     }
 
-    g_pSceneManager->loadScene("");
-
     if((ret = g_pGraphicsManager->initialize()) != 0) {
         printf("Graphics manager Initialization failed, will exit...");
         return ret;
     }
 
+    g_pSceneManager->loadScene(g_pAssetLoader->searchFile("models/sponza/sponza.gltf").c_str());
+
+    g_pGraphicsManager->prepareSceneRelatedGraphicsResources();
+
     while(!g_pApp->isQuit()) {
         g_pApp->tick();
         g_pMemManager->tick();
         g_pAssetLoader->tick();
-        // g_pSceneManager->tick();
+        g_pSceneManager->tick();
         g_pGraphicsManager->tick();
         std::this_thread::sleep_for(std::chrono::microseconds(10000));
     }
 
+    g_pGraphicsManager->releaseSceneRelatedGraphicsResources();
+
+    g_pSceneManager->unloadScene();
+
     g_pGraphicsManager->finalize();
-    // g_pSceneManager->finalize();
+    g_pSceneManager->finalize();
     g_pAssetLoader->finalize();
     g_pMemManager->finalize();
     g_pApp->finalize();

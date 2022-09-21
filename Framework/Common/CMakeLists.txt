@@ -2,6 +2,7 @@ add_library(Common
 Allocator.cpp
 AssetLoader.cpp
 BaseApplication.cpp
+gltfSceneParser.cpp
 GraphicsManager.cpp
 main.cpp
 MemoryManager.cpp

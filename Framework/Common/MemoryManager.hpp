@@ -5,7 +5,7 @@
 #include <iostream>
 
 namespace OctoPotato {
-    class MemoryManager : implements IRuntimeModule {
+    class MemoryManager : public IRuntimeModule {
     public:
         template<typename T, typename... Arguments>
         T* New(Arguments... parameters) {

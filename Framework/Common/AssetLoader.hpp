@@ -9,7 +9,7 @@
 #include <iostream>
 
 namespace OctoPotato {
-    class AssetLoader : implements IRuntimeModule {
+    class AssetLoader : public IRuntimeModule {
     public:
         AssetLoader() { std::clog << "AssetLoaderCons" << std::endl; }
         virtual ~AssetLoader() {};

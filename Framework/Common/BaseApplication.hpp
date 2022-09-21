@@ -4,7 +4,7 @@
 #include <iostream>
 
 namespace OctoPotato {
-    class BaseApplication : implements IApplication {
+    class BaseApplication : public IApplication {
     public:
         BaseApplication(const Configuration& config);
         virtual int initialize();

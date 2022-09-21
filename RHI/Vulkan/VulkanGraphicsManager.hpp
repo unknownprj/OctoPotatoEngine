@@ -11,6 +11,8 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 
 #include <chrono>
@@ -36,11 +38,28 @@ namespace OctoPotato {
 
     class VulkanGraphicsManager : public GraphicsManager {
     public:
+        VulkanGraphicsManager() : GraphicsManager(), swapChain(VK_NULL_HANDLE) {};
         virtual int initialize();
         virtual void tick();
         virtual void finalize();
+    private:
+        void windowResize();
+    public:
+        virtual void windowResized();
 
-    
+        virtual void prepareSceneRelatedGraphicsResources();
+
+        virtual void releaseSceneRelatedGraphicsResources();
+
+        virtual void viewChanged();
+
+        // virtual void buildCommandBuffers();
+
+        void updateUniformBuffers();
+
+        vks::VulkanDevice* vulkanDevice;
+        VulkanglTFScene* p_glTFScene;
+
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
         };
@@ -128,21 +147,31 @@ namespace OctoPotato {
             }
         };
 
-
+        struct ShaderData {
+            vks::Buffer buffer;
+            struct Values {
+                glm::mat4 projection;
+                glm::mat4 view;
+                glm::vec4 lightPos = glm::vec4(0.0f, 2.5f, 0.0f, 1.0f);
+                glm::vec4 viewPos;
+            } values;
+        };
 
         struct UniformBufferObject {
             alignas(16) glm::mat4 model;
             alignas(16) glm::mat4 view;
             alignas(16) glm::mat4 proj;
         };
-        protected:
+    public:
         bool framebufferResized = false;
+        bool viewUpdated = false;
+        bool prepared = false;
         Camera camera;
         uint32_t width, height;
-
-        const std::string MODEL_PATH = "models/viking_room.obj";
-        const std::string TEXTURE_PATH = "textures/viking_room.png";
-
+        /*
+                const std::string MODEL_PATH = "models/viking_room.obj";
+                const std::string TEXTURE_PATH = "textures/viking_room.png";
+        */
         VkInstance instance;
         VkDebugUtilsMessengerEXT debugMessenger;
         VkSurfaceKHR surface;
@@ -150,9 +179,10 @@ namespace OctoPotato {
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice device;
 
-        VkQueue graphicsQueue;
-        VkQueue presentQueue;
-        VkQueue transferQueue;
+        // VkQueue graphicsQueue;
+        // VkQueue presentQueue;
+        // VkQueue transferQueue;
+        VkQueue queue;
 
         VkSwapchainKHR swapChain;
         std::vector<VkImage> swapChainImages;
@@ -161,9 +191,10 @@ namespace OctoPotato {
         std::vector<VkImageView> swapChainImageViews;
 
         VkRenderPass renderPass;
-        VkDescriptorSetLayout descriptorSetLayout;
+        // VkDescriptorSetLayout descriptorSetLayout;
         VkPipelineLayout pipelineLayout;
-        VkPipeline graphicsPipeline;
+        // VkPipeline graphicsPipeline;
+        VkPipelineCache pipelineCache;
 
         std::vector<VkFramebuffer> swapChainFramebuffers;
 
@@ -180,9 +211,13 @@ namespace OctoPotato {
         VkBuffer indexBuffer;
         VkDeviceMemory indexBufferMemory;
 
-        std::vector<VkBuffer> uniformBuffers;
-        std::vector<VkDeviceMemory> uniformBuffersMemory;
-
+        struct DescriptorSetLayouts {
+            VkDescriptorSetLayout matrices;
+            VkDescriptorSetLayout textures;
+        } descriptorSetLayouts;
+        // std::vector<VkBuffer> uniformBuffers;
+        // std::vector<VkDeviceMemory> uniformBuffersMemory;
+        std::vector<ShaderData> shaderDatas;
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
 
@@ -208,6 +243,8 @@ namespace OctoPotato {
         uint32_t currentFrame = 0;
 
         VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        void setupDescriptors();
 
         void createInstance();
         void setupDebugMessenger();
@@ -333,8 +370,8 @@ namespace OctoPotato {
             submitInfo.commandBufferCount = 1;
             submitInfo.pCommandBuffers = &commandBuffer;
 
-            vkQueueSubmit(transferQueue, 1, &submitInfo, VK_NULL_HANDLE);
-            vkQueueWaitIdle(transferQueue);
+            vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+            vkQueueWaitIdle(queue);
 
             vkFreeCommandBuffers(device, transferCommandPool, 1, &commandBuffer);
         }
@@ -394,7 +431,7 @@ namespace OctoPotato {
         }
 
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
-            if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+            if ((capabilities.currentExtent.width != (std::numeric_limits<uint32_t>::max)())) {
                 return capabilities.currentExtent;
             }
             else {
@@ -572,6 +609,96 @@ namespace OctoPotato {
         static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
             auto app = reinterpret_cast<VulkanGraphicsManager*>(glfwGetWindowUserPointer(window));
             app->framebufferResized = true;
+            if (app->prepared)
+                app->windowResize();
+        }
+        static void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
+            auto vulkanManager = reinterpret_cast<VulkanGraphicsManager*>(g_pGraphicsManager);
+            auto &camera = vulkanManager->camera;
+            int dx = camera.mouse.xpos - xpos;
+            int dy = camera.mouse.ypos - ypos;
+            camera.mouse.xpos = xpos;
+            camera.mouse.ypos = ypos;
+            if (camera.mouse.left) {
+                camera.rotate(glm::vec3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
+            }
+            if (camera.mouse.right) {
+                camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f * camera.movementSpeed));
+            }
+            if (camera.mouse.middle) {
+                camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+            }
+
+        }
+        static void keyCallback(GLFWwindow* window, int key, int scanCode, int action, int mods) {
+            auto vulkanManager = reinterpret_cast<VulkanGraphicsManager*>(g_pGraphicsManager);
+            auto &camera = vulkanManager->camera;
+            if (action == GLFW_PRESS) {
+                switch (key) {
+                case GLFW_KEY_W:
+                    camera.keys.up = true;
+                    break;
+                case GLFW_KEY_S:
+                    camera.keys.down = true;
+                    break;
+                case GLFW_KEY_A:
+                    camera.keys.left = true;
+                    break;
+                case GLFW_KEY_D:
+                    camera.keys.right = true;
+                    break;
+                };
+            }
+            else if (action == GLFW_RELEASE) {
+                switch (key) {
+                case GLFW_KEY_W:
+                    camera.keys.up = false;
+                    break;
+                case GLFW_KEY_S:
+                    camera.keys.down = false;
+                    break;
+                case GLFW_KEY_A:
+                    camera.keys.left = false;
+                    break;
+                case GLFW_KEY_D:
+                    camera.keys.right = false;
+                    break;
+                };
+            }
+        }
+        static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+            auto vulkanManager = reinterpret_cast<VulkanGraphicsManager*>(g_pGraphicsManager);
+            auto &camera = vulkanManager->camera;
+            if (action == GLFW_PRESS) {
+                switch (button) {
+                case GLFW_MOUSE_BUTTON_LEFT:
+                    camera.mouse.left = true;
+                    break;
+                case GLFW_MOUSE_BUTTON_RIGHT:
+                    camera.mouse.right = true;
+                    break;
+                case GLFW_MOUSE_BUTTON_MIDDLE:
+                    camera.mouse.middle = true;
+                    break;
+                };
+            }
+            else if (action == GLFW_RELEASE) {
+                switch (button) {
+                case GLFW_MOUSE_BUTTON_LEFT:
+                    camera.mouse.left = false;
+                    break;
+                case GLFW_MOUSE_BUTTON_RIGHT:
+                    camera.mouse.right = false;
+                    break;
+                case GLFW_MOUSE_BUTTON_MIDDLE:
+                    camera.mouse.middle = false;
+                    break;
+                };
+            }
+        }
+        static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+            auto vulkanManager = reinterpret_cast<VulkanGraphicsManager*>(g_pGraphicsManager);
+            vulkanManager->camera.translate(glm::vec3(0.0f, 0.0f, -yoffset * 0.005f * vulkanManager->camera.movementSpeed));
         }
     };
 }
